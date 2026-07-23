@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import { sendSuccessResponse } from '../../common/utils/send-success-response';
 import {
+  archiveArtist,
   createArtist,
   getArtistById,
   listArtists,
@@ -86,6 +87,22 @@ artistsRouter.patch('/:id', async (request, response, next) => {
     const artist = await updateArtist(
       request.params.id,
       request.body
+    );
+
+    sendSuccessResponse({
+      request: request as RequestWithId,
+      response,
+      data: artist
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+artistsRouter.patch('/:id/archive', async (request, response, next) => {
+  try {
+    const artist = await archiveArtist(
+      request.params.id
     );
 
     sendSuccessResponse({

@@ -31,6 +31,17 @@ export interface UpdateArtistInput {
   status?: Artist['status'];
 }
 
+function validateArtistId(
+  artistId: string
+): void {
+  if (!Types.ObjectId.isValid(artistId)) {
+    throw new AppError(
+      'Invalid artist id',
+      400
+    );
+  }
+}
+
 export async function createArtist(
   input: CreateArtistInput
 ) {
@@ -60,12 +71,7 @@ export async function listArtists() {
 export async function getArtistById(
   artistId: string
 ) {
-  if (!Types.ObjectId.isValid(artistId)) {
-    throw new AppError(
-      'Invalid artist id',
-      400
-    );
-  }
+  validateArtistId(artistId);
 
   const artist = await ArtistModel.findById(
     artistId
@@ -85,17 +91,39 @@ export async function updateArtist(
   artistId: string,
   input: UpdateArtistInput
 ) {
-  if (!Types.ObjectId.isValid(artistId)) {
-    throw new AppError(
-      'Invalid artist id',
-      400
-    );
-  }
+  validateArtistId(artistId);
 
   const artist = await ArtistModel
     .findByIdAndUpdate(
       artistId,
       input,
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+  if (!artist) {
+    throw new AppError(
+      `Artist with id ${artistId} was not found`,
+      404
+    );
+  }
+
+  return artist;
+}
+
+export async function archiveArtist(
+  artistId: string
+) {
+  validateArtistId(artistId);
+
+  const artist = await ArtistModel
+    .findByIdAndUpdate(
+      artistId,
+      {
+        status: 'archived'
+      },
       {
         new: true,
         runValidators: true
