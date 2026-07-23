@@ -4,6 +4,9 @@ import {
   createArtist,
   listArtists
 } from './artist.service';
+import {
+  validateCreateArtistInput
+} from './artist.validators';
 
 export const artistsRouter = Router();
 
@@ -21,6 +24,10 @@ artistsRouter.get('/', async (_request, response, next) => {
 
 artistsRouter.post('/', async (request, response, next) => {
   try {
+    validateCreateArtistInput(
+      request.body as Record<string, unknown>
+    );
+
     const artist = await createArtist({
       name: request.body.name,
       genre: request.body.genre,

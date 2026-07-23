@@ -4,6 +4,8 @@ import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
+import { errorHandler } from './common/middlewares/error-handler.middleware';
+import { notFoundHandler } from './common/middlewares/not-found.middleware';
 import { artistsRouter } from './modules/artists/artist.routes';
 import { healthRouter } from './modules/health/health.routes';
 
@@ -18,6 +20,9 @@ export function createApp() {
 
   app.use('/api/health', healthRouter);
   app.use('/api/artists', artistsRouter);
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 }
