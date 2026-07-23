@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import { sendSuccessResponse } from '../../common/utils/send-success-response';
 import {
   createArtist,
   listArtists
@@ -8,13 +9,19 @@ import {
   validateCreateArtistInput
 } from './artist.validators';
 
+import type {
+  RequestWithId
+} from '../../common/middlewares/request-id.middleware';
+
 export const artistsRouter = Router();
 
-artistsRouter.get('/', async (_request, response, next) => {
+artistsRouter.get('/', async (request, response, next) => {
   try {
     const artists = await listArtists();
 
-    response.json({
+    sendSuccessResponse({
+      request: request as RequestWithId,
+      response,
       data: artists
     });
   } catch (error) {
@@ -40,7 +47,10 @@ artistsRouter.post('/', async (request, response, next) => {
       status: request.body.status
     });
 
-    response.status(201).json({
+    sendSuccessResponse({
+      request: request as RequestWithId,
+      response,
+      statusCode: 201,
       data: artist
     });
   } catch (error) {
