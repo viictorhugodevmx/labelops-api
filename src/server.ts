@@ -1,17 +1,17 @@
-import dotenv from 'dotenv';
-
 import { createApp } from './app';
+import { connectDatabase } from './config/database';
+import { env } from './config/env';
 
-dotenv.config();
+async function bootstrap(): Promise<void> {
+  await connectDatabase();
 
-const port = Number(
-  process.env.PORT ?? 3006
-);
+  const app = createApp();
 
-const app = createApp();
+  app.listen(env.port, () => {
+    console.log(
+      `LabelOps API running on http://localhost:${env.port}`
+    );
+  });
+}
 
-app.listen(port, () => {
-  console.log(
-    `LabelOps API running on http://localhost:${port}`
-  );
-});
+void bootstrap();
