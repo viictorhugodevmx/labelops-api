@@ -4,6 +4,7 @@ import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
+import { artistsRouter } from './modules/artists/artist.routes';
 import { healthRouter } from './modules/health/health.routes';
 
 export function createApp() {
@@ -16,6 +17,7 @@ export function createApp() {
   app.use(morgan('dev'));
 
   app.use('/api/health', healthRouter);
+  app.use('/api/artists', artistsRouter);
 
   return app;
 }
