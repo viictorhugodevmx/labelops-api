@@ -4,10 +4,12 @@ import { sendSuccessResponse } from '../../common/utils/send-success-response';
 import {
   createArtist,
   getArtistById,
-  listArtists
+  listArtists,
+  updateArtist
 } from './artist.service';
 import {
-  validateCreateArtistInput
+  validateCreateArtistInput,
+  validateUpdateArtistInput
 } from './artist.validators';
 
 import type {
@@ -68,6 +70,27 @@ artistsRouter.post('/', async (request, response, next) => {
       request: request as RequestWithId,
       response,
       statusCode: 201,
+      data: artist
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+artistsRouter.patch('/:id', async (request, response, next) => {
+  try {
+    validateUpdateArtistInput(
+      request.body as Record<string, unknown>
+    );
+
+    const artist = await updateArtist(
+      request.params.id,
+      request.body
+    );
+
+    sendSuccessResponse({
+      request: request as RequestWithId,
+      response,
       data: artist
     });
   } catch (error) {

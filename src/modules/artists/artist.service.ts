@@ -19,6 +19,18 @@ export interface CreateArtistInput {
   status?: Artist['status'];
 }
 
+export interface UpdateArtistInput {
+  name?: string;
+  genre?: string;
+  country?: string;
+  bio?: string;
+  imageUrl?: string;
+  instagramUrl?: string;
+  youtubeUrl?: string;
+  spotifyUrl?: string;
+  status?: Artist['status'];
+}
+
 export async function createArtist(
   input: CreateArtistInput
 ) {
@@ -58,6 +70,37 @@ export async function getArtistById(
   const artist = await ArtistModel.findById(
     artistId
   );
+
+  if (!artist) {
+    throw new AppError(
+      `Artist with id ${artistId} was not found`,
+      404
+    );
+  }
+
+  return artist;
+}
+
+export async function updateArtist(
+  artistId: string,
+  input: UpdateArtistInput
+) {
+  if (!Types.ObjectId.isValid(artistId)) {
+    throw new AppError(
+      'Invalid artist id',
+      400
+    );
+  }
+
+  const artist = await ArtistModel
+    .findByIdAndUpdate(
+      artistId,
+      input,
+      {
+        new: true,
+        runValidators: true
+      }
+    );
 
   if (!artist) {
     throw new AppError(
