@@ -1,3 +1,6 @@
+import { Types } from 'mongoose';
+
+import { AppError } from '../../common/errors/app-error';
 import { ArtistModel } from './artist.model';
 
 import type {
@@ -40,4 +43,28 @@ export async function listArtists() {
     .sort({
       createdAt: -1
     });
+}
+
+export async function getArtistById(
+  artistId: string
+) {
+  if (!Types.ObjectId.isValid(artistId)) {
+    throw new AppError(
+      'Invalid artist id',
+      400
+    );
+  }
+
+  const artist = await ArtistModel.findById(
+    artistId
+  );
+
+  if (!artist) {
+    throw new AppError(
+      `Artist with id ${artistId} was not found`,
+      404
+    );
+  }
+
+  return artist;
 }

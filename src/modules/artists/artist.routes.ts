@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { sendSuccessResponse } from '../../common/utils/send-success-response';
 import {
   createArtist,
+  getArtistById,
   listArtists
 } from './artist.service';
 import {
@@ -23,6 +24,22 @@ artistsRouter.get('/', async (request, response, next) => {
       request: request as RequestWithId,
       response,
       data: artists
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+artistsRouter.get('/:id', async (request, response, next) => {
+  try {
+    const artist = await getArtistById(
+      request.params.id
+    );
+
+    sendSuccessResponse({
+      request: request as RequestWithId,
+      response,
+      data: artist
     });
   } catch (error) {
     next(error);
