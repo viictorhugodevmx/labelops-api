@@ -6,12 +6,14 @@ import morgan from 'morgan';
 
 import { errorHandler } from './common/middlewares/error-handler.middleware';
 import { notFoundHandler } from './common/middlewares/not-found.middleware';
+import { requestIdMiddleware } from './common/middlewares/request-id.middleware';
 import { artistsRouter } from './modules/artists/artist.routes';
 import { healthRouter } from './modules/health/health.routes';
 
 export function createApp() {
   const app = express();
 
+  app.use(requestIdMiddleware);
   app.use(helmet());
   app.use(cors());
   app.use(compression());
