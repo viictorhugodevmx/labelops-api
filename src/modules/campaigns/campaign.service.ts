@@ -32,6 +32,31 @@ export interface UpdateCampaignInput {
   mainGoal?: string;
 }
 
+export interface ListCampaignsInput {
+  artistId?: string;
+  status?: CampaignStatus;
+  type?: CampaignType;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+interface TextSearchFilter {
+  $regex: string;
+  $options: 'i';
+}
+
+interface CampaignListFilter {
+  artistId?: Types.ObjectId;
+  status?: CampaignStatus;
+  type?: CampaignType;
+  $or?: Array<{
+    title?: TextSearchFilter;
+    description?: TextSearchFilter;
+    mainGoal?: TextSearchFilter;
+  }>;
+}
+
 function validateCampaignId(
   campaignId: string
 ): void {
@@ -41,6 +66,27 @@ function validateCampaignId(
       400
     );
   }
+}
+
+function normalizePagination(
+  page?: number,
+  limit?: number
+) {
+  const safePage =
+    page && page > 0
+      ? page
+      : 1;
+
+  const safeLimit =
+    limit && limit > 0 && limit <= 50
+      ? limit
+      : 10;
+
+  return {
+    page: safePage,
+    limit: safeLimit,
+    skip: (safePage - 1) * safeLimit
+  };
 }
 
 export async function createCampaign(
@@ -72,16 +118,88 @@ export async function createCampaign(
   return campaign;
 }
 
-export async function listCampaigns() {
-  return CampaignModel
-    .find()
-    .populate(
-      'artistId',
-      'name genre country status imageUrl'
-    )
-    .sort({
-      createdAt: -1
-    });
+export async function listCampaigns(
+  input: ListCampaignsInput = {}
+) {
+  const {
+    page,
+    limit,
+    skip
+  } = normalizePagination(
+    input.page,
+    input.limit
+  );
+
+  const filter: CampaignListFilter = {};
+
+  if (input.artistId) {
+    if (!Types.ObjectId.isValid(input.artistId)) {
+      throw new AppError(
+        'artistId must be a valid MongoDB ObjectId',
+        400
+      );
+    }
+
+    filter.artistId = new Types.ObjectId(
+      input.artistId
+    );
+  }
+
+  if (input.status) {
+    filter.status = input.status;
+  }
+
+  if (input.type) {
+    filter.type = input.type;
+  }
+
+  if (input.search) {
+    filter.$or = [
+      {
+        title: {
+          $regex: input.search,
+          $options: 'i'
+        }
+      },
+      {
+        description: {
+          $regex: input.search,
+          $options: 'i'
+        }
+      },
+      {
+        mainGoal: {
+          $regex: input.search,
+          $options: 'i'
+        }
+      }
+    ];
+  }
+
+  const [campaigns, total] = await Promise.all([
+    CampaignModel
+      .find(filter)
+      .populate(
+        'artistId',
+        'name genre country status imageUrl'
+      )
+      .sort({
+        createdAt: -1
+      })
+      .skip(skip)
+      .limit(limit),
+    CampaignModel.countDocuments(filter)
+  ]);
+
+  return {
+    campaigns,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
 }
 
 export async function getCampaignById(
