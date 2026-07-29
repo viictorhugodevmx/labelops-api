@@ -2,12 +2,15 @@ import { Router } from 'express';
 
 import { sendSuccessResponse } from '../../common/utils/send-success-response';
 import {
+  cancelCampaign,
   createCampaign,
   getCampaignById,
-  listCampaigns
+  listCampaigns,
+  updateCampaign
 } from './campaign.service';
 import {
-  validateCreateCampaignInput
+  validateCreateCampaignInput,
+  validateUpdateCampaignInput
 } from './campaign.validators';
 
 import type {
@@ -68,6 +71,43 @@ campaignsRouter.post('/', async (request, response, next) => {
       request: request as RequestWithId,
       response,
       statusCode: 201,
+      data: campaign
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+campaignsRouter.patch('/:id', async (request, response, next) => {
+  try {
+    validateUpdateCampaignInput(
+      request.body as Record<string, unknown>
+    );
+
+    const campaign = await updateCampaign(
+      request.params.id,
+      request.body
+    );
+
+    sendSuccessResponse({
+      request: request as RequestWithId,
+      response,
+      data: campaign
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+campaignsRouter.patch('/:id/cancel', async (request, response, next) => {
+  try {
+    const campaign = await cancelCampaign(
+      request.params.id
+    );
+
+    sendSuccessResponse({
+      request: request as RequestWithId,
+      response,
       data: campaign
     });
   } catch (error) {

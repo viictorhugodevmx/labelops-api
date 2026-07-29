@@ -21,6 +21,17 @@ export interface CreateCampaignInput {
   mainGoal: string;
 }
 
+export interface UpdateCampaignInput {
+  title?: string;
+  type?: CampaignType;
+  status?: CampaignStatus;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  budget?: number;
+  mainGoal?: string;
+}
+
 function validateCampaignId(
   campaignId: string
 ): void {
@@ -80,6 +91,77 @@ export async function getCampaignById(
 
   const campaign = await CampaignModel
     .findById(campaignId)
+    .populate(
+      'artistId',
+      'name genre country status imageUrl'
+    );
+
+  if (!campaign) {
+    throw new AppError(
+      `Campaign with id ${campaignId} was not found`,
+      404
+    );
+  }
+
+  return campaign;
+}
+
+export async function updateCampaign(
+  campaignId: string,
+  input: UpdateCampaignInput
+) {
+  validateCampaignId(campaignId);
+
+  const updatePayload = {
+    ...input,
+    ...(input.startDate
+      ? { startDate: new Date(input.startDate) }
+      : {}),
+    ...(input.endDate
+      ? { endDate: new Date(input.endDate) }
+      : {})
+  };
+
+  const campaign = await CampaignModel
+    .findByIdAndUpdate(
+      campaignId,
+      updatePayload,
+      {
+        new: true,
+        runValidators: true
+      }
+    )
+    .populate(
+      'artistId',
+      'name genre country status imageUrl'
+    );
+
+  if (!campaign) {
+    throw new AppError(
+      `Campaign with id ${campaignId} was not found`,
+      404
+    );
+  }
+
+  return campaign;
+}
+
+export async function cancelCampaign(
+  campaignId: string
+) {
+  validateCampaignId(campaignId);
+
+  const campaign = await CampaignModel
+    .findByIdAndUpdate(
+      campaignId,
+      {
+        status: 'cancelled'
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    )
     .populate(
       'artistId',
       'name genre country status imageUrl'
