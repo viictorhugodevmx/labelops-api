@@ -2,12 +2,15 @@ import { Router } from 'express';
 
 import { sendSuccessResponse } from '../../common/utils/send-success-response';
 import {
+  archiveContent,
   createContent,
   getContentById,
-  listContent
+  listContent,
+  updateContent
 } from './content.service';
 import {
-  validateCreateContentInput
+  validateCreateContentInput,
+  validateUpdateContentInput
 } from './content.validators';
 
 import type {
@@ -69,6 +72,43 @@ contentRouter.post('/', async (request, response, next) => {
       request: request as RequestWithId,
       response,
       statusCode: 201,
+      data: content
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+contentRouter.patch('/:id', async (request, response, next) => {
+  try {
+    validateUpdateContentInput(
+      request.body as Record<string, unknown>
+    );
+
+    const content = await updateContent(
+      request.params.id,
+      request.body
+    );
+
+    sendSuccessResponse({
+      request: request as RequestWithId,
+      response,
+      data: content
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+contentRouter.patch('/:id/archive', async (request, response, next) => {
+  try {
+    const content = await archiveContent(
+      request.params.id
+    );
+
+    sendSuccessResponse({
+      request: request as RequestWithId,
+      response,
       data: content
     });
   } catch (error) {

@@ -24,6 +24,18 @@ export interface CreateContentInput {
   publishDate?: string;
 }
 
+export interface UpdateContentInput {
+  campaignId?: string;
+  title?: string;
+  type?: ContentType;
+  status?: ContentStatus;
+  platform?: ContentPlatform;
+  url?: string;
+  thumbnailUrl?: string;
+  description?: string;
+  publishDate?: string;
+}
+
 function validateContentId(
   contentId: string
 ): void {
@@ -31,6 +43,21 @@ function validateContentId(
     throw new AppError(
       'Invalid content id',
       400
+    );
+  }
+}
+
+async function validateCampaignExists(
+  campaignId: string
+): Promise<void> {
+  const campaign = await CampaignModel.findById(
+    campaignId
+  );
+
+  if (!campaign) {
+    throw new AppError(
+      `Campaign with id ${campaignId} was not found`,
+      404
     );
   }
 }
@@ -50,16 +77,9 @@ export async function createContent(
   }
 
   if (input.campaignId) {
-    const campaign = await CampaignModel.findById(
+    await validateCampaignExists(
       input.campaignId
     );
-
-    if (!campaign) {
-      throw new AppError(
-        `Campaign with id ${input.campaignId} was not found`,
-        404
-      );
-    }
   }
 
   const content = await ContentModel.create({
@@ -105,6 +125,91 @@ export async function getContentById(
 
   const content = await ContentModel
     .findById(contentId)
+    .populate(
+      'artistId',
+      'name genre country status imageUrl'
+    )
+    .populate(
+      'campaignId',
+      'title type status startDate endDate'
+    );
+
+  if (!content) {
+    throw new AppError(
+      `Content with id ${contentId} was not found`,
+      404
+    );
+  }
+
+  return content;
+}
+
+export async function updateContent(
+  contentId: string,
+  input: UpdateContentInput
+) {
+  validateContentId(contentId);
+
+  if (input.campaignId) {
+    await validateCampaignExists(
+      input.campaignId
+    );
+  }
+
+  const updatePayload = {
+    ...input,
+    ...(input.campaignId
+      ? { campaignId: new Types.ObjectId(input.campaignId) }
+      : {}),
+    ...(input.publishDate
+      ? { publishDate: new Date(input.publishDate) }
+      : {})
+  };
+
+  const content = await ContentModel
+    .findByIdAndUpdate(
+      contentId,
+      updatePayload,
+      {
+        new: true,
+        runValidators: true
+      }
+    )
+    .populate(
+      'artistId',
+      'name genre country status imageUrl'
+    )
+    .populate(
+      'campaignId',
+      'title type status startDate endDate'
+    );
+
+  if (!content) {
+    throw new AppError(
+      `Content with id ${contentId} was not found`,
+      404
+    );
+  }
+
+  return content;
+}
+
+export async function archiveContent(
+  contentId: string
+) {
+  validateContentId(contentId);
+
+  const content = await ContentModel
+    .findByIdAndUpdate(
+      contentId,
+      {
+        status: 'archived'
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    )
     .populate(
       'artistId',
       'name genre country status imageUrl'

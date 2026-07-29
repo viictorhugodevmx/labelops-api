@@ -57,6 +57,26 @@ function validateRequiredString(
   }
 }
 
+function validateOptionalString(
+  body: Record<string, unknown>,
+  field: string
+): void {
+  const value = body[field];
+
+  if (
+    value !== undefined
+    && (
+      typeof value !== 'string'
+      || !value.trim()
+    )
+  ) {
+    throw new AppError(
+      `${field} must be a non-empty string`,
+      400
+    );
+  }
+}
+
 function validateRequiredUrl(
   body: Record<string, unknown>,
   field: string
@@ -68,6 +88,27 @@ function validateRequiredUrl(
   if (
     typeof value === 'string'
     && !isValidUrl(value)
+  ) {
+    throw new AppError(
+      `${field} must be a valid URL`,
+      400
+    );
+  }
+}
+
+function validateOptionalUrl(
+  body: Record<string, unknown>,
+  field: string
+): void {
+  const value = body[field];
+
+  if (value === undefined) {
+    return;
+  }
+
+  if (
+    typeof value !== 'string'
+    || !isValidUrl(value)
   ) {
     throw new AppError(
       `${field} must be a valid URL`,
@@ -172,4 +213,96 @@ export function validateCreateContentInput(
   }
 
   validateOptionalDate(body, 'publishDate');
+}
+
+export function validateUpdateContentInput(
+  body: Record<string, unknown>
+): void {
+  const allowedFields = [
+    'campaignId',
+    'title',
+    'type',
+    'status',
+    'platform',
+    'url',
+    'thumbnailUrl',
+    'description',
+    'publishDate'
+  ];
+
+  const receivedFields = Object.keys(body);
+
+  if (receivedFields.length === 0) {
+    throw new AppError(
+      'At least one field is required',
+      400
+    );
+  }
+
+  for (const field of receivedFields) {
+    if (!allowedFields.includes(field)) {
+      throw new AppError(
+        `${field} is not allowed`,
+        400
+      );
+    }
+  }
+
+  validateOptionalString(body, 'title');
+  validateOptionalString(body, 'description');
+  validateOptionalUrl(body, 'url');
+  validateOptionalUrl(body, 'thumbnailUrl');
+  validateOptionalDate(body, 'publishDate');
+
+  if (
+    body.campaignId !== undefined
+    && (
+      typeof body.campaignId !== 'string'
+      || !Types.ObjectId.isValid(body.campaignId)
+    )
+  ) {
+    throw new AppError(
+      'campaignId must be a valid MongoDB ObjectId',
+      400
+    );
+  }
+
+  if (
+    body.type !== undefined
+    && (
+      typeof body.type !== 'string'
+      || !allowedTypes.includes(body.type)
+    )
+  ) {
+    throw new AppError(
+      'type must be video, reel, post, artwork or press',
+      400
+    );
+  }
+
+  if (
+    body.status !== undefined
+    && (
+      typeof body.status !== 'string'
+      || !allowedStatuses.includes(body.status)
+    )
+  ) {
+    throw new AppError(
+      'status must be draft, scheduled, published or archived',
+      400
+    );
+  }
+
+  if (
+    body.platform !== undefined
+    && (
+      typeof body.platform !== 'string'
+      || !allowedPlatforms.includes(body.platform)
+    )
+  ) {
+    throw new AppError(
+      'platform must be instagram, youtube, tiktok, spotify or website',
+      400
+    );
+  }
 }
