@@ -31,6 +31,29 @@ export interface UpdateArtistInput {
   status?: Artist['status'];
 }
 
+export interface ListArtistsInput {
+  status?: Artist['status'];
+  genre?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+interface TextSearchFilter {
+  $regex: string;
+  $options: 'i';
+}
+
+interface ArtistListFilter {
+  status?: Artist['status'];
+  genre?: TextSearchFilter;
+  $or?: Array<{
+    name?: TextSearchFilter;
+    genre?: TextSearchFilter;
+    country?: TextSearchFilter;
+  }>;
+}
+
 function validateArtistId(
   artistId: string
 ): void {
@@ -40,6 +63,27 @@ function validateArtistId(
       400
     );
   }
+}
+
+function normalizePagination(
+  page?: number,
+  limit?: number
+) {
+  const safePage =
+    page && page > 0
+      ? page
+      : 1;
+
+  const safeLimit =
+    limit && limit > 0 && limit <= 50
+      ? limit
+      : 10;
+
+  return {
+    page: safePage,
+    limit: safeLimit,
+    skip: (safePage - 1) * safeLimit
+  };
 }
 
 export async function createArtist(
@@ -60,12 +104,74 @@ export async function createArtist(
   return artist;
 }
 
-export async function listArtists() {
-  return ArtistModel
-    .find()
-    .sort({
-      createdAt: -1
-    });
+export async function listArtists(
+  input: ListArtistsInput = {}
+) {
+  const {
+    page,
+    limit,
+    skip
+  } = normalizePagination(
+    input.page,
+    input.limit
+  );
+
+  const filter: ArtistListFilter = {};
+
+  if (input.status) {
+    filter.status = input.status;
+  }
+
+  if (input.genre) {
+    filter.genre = {
+      $regex: input.genre,
+      $options: 'i'
+    };
+  }
+
+  if (input.search) {
+    filter.$or = [
+      {
+        name: {
+          $regex: input.search,
+          $options: 'i'
+        }
+      },
+      {
+        genre: {
+          $regex: input.search,
+          $options: 'i'
+        }
+      },
+      {
+        country: {
+          $regex: input.search,
+          $options: 'i'
+        }
+      }
+    ];
+  }
+
+  const [artists, total] = await Promise.all([
+    ArtistModel
+      .find(filter)
+      .sort({
+        createdAt: -1
+      })
+      .skip(skip)
+      .limit(limit),
+    ArtistModel.countDocuments(filter)
+  ]);
+
+  return {
+    artists,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
 }
 
 export async function getArtistById(

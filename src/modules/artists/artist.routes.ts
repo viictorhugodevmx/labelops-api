@@ -17,16 +17,73 @@ import type {
   RequestWithId
 } from '../../common/middlewares/request-id.middleware';
 
+import type {
+  Artist
+} from './artist.model';
+
 export const artistsRouter = Router();
+
+function parsePositiveNumber(
+  value: unknown
+): number | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const parsedValue = Number(value);
+
+  if (
+    Number.isNaN(parsedValue)
+    || parsedValue <= 0
+  ) {
+    return undefined;
+  }
+
+  return parsedValue;
+}
+
+function parseArtistStatus(
+  value: unknown
+): Artist['status'] | undefined {
+  if (
+    value === 'active'
+    || value === 'paused'
+    || value === 'archived'
+  ) {
+    return value;
+  }
+
+  return undefined;
+}
+
+function parseStringQuery(
+  value: unknown
+): string | undefined {
+  if (
+    typeof value === 'string'
+    && value.trim()
+  ) {
+    return value.trim();
+  }
+
+  return undefined;
+}
 
 artistsRouter.get('/', async (request, response, next) => {
   try {
-    const artists = await listArtists();
+    const result = await listArtists({
+      status: parseArtistStatus(request.query.status),
+      genre: parseStringQuery(request.query.genre),
+      search: parseStringQuery(request.query.search),
+      page: parsePositiveNumber(request.query.page),
+      limit: parsePositiveNumber(request.query.limit)
+    });
 
     sendSuccessResponse({
       request: request as RequestWithId,
       response,
-      data: artists
+      data: result.artists,
+      meta: result.meta
     });
   } catch (error) {
     next(error);

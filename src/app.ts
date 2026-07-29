@@ -8,6 +8,7 @@ import { errorHandler } from './common/middlewares/error-handler.middleware';
 import { notFoundHandler } from './common/middlewares/not-found.middleware';
 import { requestIdMiddleware } from './common/middlewares/request-id.middleware';
 import { artistsRouter } from './modules/artists/artist.routes';
+import { campaignsRouter } from './modules/campaigns/campaign.routes';
 import { healthRouter } from './modules/health/health.routes';
 
 export function createApp() {
@@ -22,6 +23,7 @@ export function createApp() {
 
   app.use('/api/health', healthRouter);
   app.use('/api/artists', artistsRouter);
+  app.use('/api/campaigns', campaignsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
