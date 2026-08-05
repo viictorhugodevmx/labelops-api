@@ -17,16 +17,111 @@ import type {
   RequestWithId
 } from '../../common/middlewares/request-id.middleware';
 
+import type {
+  ContentPlatform,
+  ContentStatus,
+  ContentType
+} from './content.model';
+
 export const contentRouter = Router();
+
+function parsePositiveNumber(
+  value: unknown
+): number | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const parsedValue = Number(value);
+
+  if (
+    Number.isNaN(parsedValue)
+    || parsedValue <= 0
+  ) {
+    return undefined;
+  }
+
+  return parsedValue;
+}
+
+function parseStringQuery(
+  value: unknown
+): string | undefined {
+  if (
+    typeof value === 'string'
+    && value.trim()
+  ) {
+    return value.trim();
+  }
+
+  return undefined;
+}
+
+function parseContentType(
+  value: unknown
+): ContentType | undefined {
+  if (
+    value === 'video'
+    || value === 'reel'
+    || value === 'post'
+    || value === 'artwork'
+    || value === 'press'
+  ) {
+    return value;
+  }
+
+  return undefined;
+}
+
+function parseContentStatus(
+  value: unknown
+): ContentStatus | undefined {
+  if (
+    value === 'draft'
+    || value === 'scheduled'
+    || value === 'published'
+    || value === 'archived'
+  ) {
+    return value;
+  }
+
+  return undefined;
+}
+
+function parseContentPlatform(
+  value: unknown
+): ContentPlatform | undefined {
+  if (
+    value === 'instagram'
+    || value === 'youtube'
+    || value === 'tiktok'
+    || value === 'spotify'
+    || value === 'website'
+  ) {
+    return value;
+  }
+
+  return undefined;
+}
 
 contentRouter.get('/', async (request, response, next) => {
   try {
-    const content = await listContent();
+    const result = await listContent({
+      artistId: parseStringQuery(request.query.artistId),
+      campaignId: parseStringQuery(request.query.campaignId),
+      status: parseContentStatus(request.query.status),
+      type: parseContentType(request.query.type),
+      platform: parseContentPlatform(request.query.platform),
+      search: parseStringQuery(request.query.search),
+      page: parsePositiveNumber(request.query.page),
+      limit: parsePositiveNumber(request.query.limit)
+    });
 
     sendSuccessResponse({
       request: request as RequestWithId,
       response,
-      data: content
+      data: result.content,
+      meta: result.meta
     });
   } catch (error) {
     next(error);

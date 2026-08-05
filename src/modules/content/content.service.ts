@@ -36,6 +36,35 @@ export interface UpdateContentInput {
   publishDate?: string;
 }
 
+export interface ListContentInput {
+  artistId?: string;
+  campaignId?: string;
+  status?: ContentStatus;
+  type?: ContentType;
+  platform?: ContentPlatform;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+interface TextSearchFilter {
+  $regex: string;
+  $options: 'i';
+}
+
+interface ContentListFilter {
+  artistId?: Types.ObjectId;
+  campaignId?: Types.ObjectId;
+  status?: ContentStatus;
+  type?: ContentType;
+  platform?: ContentPlatform;
+  $or?: Array<{
+    title?: TextSearchFilter;
+    description?: TextSearchFilter;
+    url?: TextSearchFilter;
+  }>;
+}
+
 function validateContentId(
   contentId: string
 ): void {
@@ -45,6 +74,27 @@ function validateContentId(
       400
     );
   }
+}
+
+function normalizePagination(
+  page?: number,
+  limit?: number
+) {
+  const safePage =
+    page && page > 0
+      ? page
+      : 1;
+
+  const safeLimit =
+    limit && limit > 0 && limit <= 50
+      ? limit
+      : 10;
+
+  return {
+    page: safePage,
+    limit: safeLimit,
+    skip: (safePage - 1) * safeLimit
+  };
 }
 
 async function validateCampaignExists(
@@ -102,20 +152,109 @@ export async function createContent(
   return content;
 }
 
-export async function listContent() {
-  return ContentModel
-    .find()
-    .populate(
-      'artistId',
-      'name genre country status imageUrl'
-    )
-    .populate(
-      'campaignId',
-      'title type status startDate endDate'
-    )
-    .sort({
-      createdAt: -1
-    });
+export async function listContent(
+  input: ListContentInput = {}
+) {
+  const {
+    page,
+    limit,
+    skip
+  } = normalizePagination(
+    input.page,
+    input.limit
+  );
+
+  const filter: ContentListFilter = {};
+
+  if (input.artistId) {
+    if (!Types.ObjectId.isValid(input.artistId)) {
+      throw new AppError(
+        'artistId must be a valid MongoDB ObjectId',
+        400
+      );
+    }
+
+    filter.artistId = new Types.ObjectId(
+      input.artistId
+    );
+  }
+
+  if (input.campaignId) {
+    if (!Types.ObjectId.isValid(input.campaignId)) {
+      throw new AppError(
+        'campaignId must be a valid MongoDB ObjectId',
+        400
+      );
+    }
+
+    filter.campaignId = new Types.ObjectId(
+      input.campaignId
+    );
+  }
+
+  if (input.status) {
+    filter.status = input.status;
+  }
+
+  if (input.type) {
+    filter.type = input.type;
+  }
+
+  if (input.platform) {
+    filter.platform = input.platform;
+  }
+
+  if (input.search) {
+    filter.$or = [
+      {
+        title: {
+          $regex: input.search,
+          $options: 'i'
+        }
+      },
+      {
+        description: {
+          $regex: input.search,
+          $options: 'i'
+        }
+      },
+      {
+        url: {
+          $regex: input.search,
+          $options: 'i'
+        }
+      }
+    ];
+  }
+
+  const [content, total] = await Promise.all([
+    ContentModel
+      .find(filter)
+      .populate(
+        'artistId',
+        'name genre country status imageUrl'
+      )
+      .populate(
+        'campaignId',
+        'title type status startDate endDate'
+      )
+      .sort({
+        createdAt: -1
+      })
+      .skip(skip)
+      .limit(limit),
+    ContentModel.countDocuments(filter)
+  ]);
+
+  return {
+    content,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
 }
 
 export async function getContentById(

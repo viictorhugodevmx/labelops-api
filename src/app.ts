@@ -11,6 +11,7 @@ import { artistsRouter } from './modules/artists/artist.routes';
 import { campaignsRouter } from './modules/campaigns/campaign.routes';
 import { contentRouter } from './modules/content/content.routes';
 import { healthRouter } from './modules/health/health.routes';
+import { linksRouter } from './modules/links/link.routes';
 
 export function createApp() {
   const app = express();
@@ -26,6 +27,7 @@ export function createApp() {
   app.use('/api/artists', artistsRouter);
   app.use('/api/campaigns', campaignsRouter);
   app.use('/api/content', contentRouter);
+  app.use('/api/links', linksRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
